@@ -138,8 +138,7 @@
       el('div', {class: 'card'}, [
         el('h1', {text: C.title || ''}),
         el('p', {class: 'meta', text: '회의 일시: ' + (C.meeting || '')}),
-        el('p', {class: 'meta', text: '입력 마감: ' + (C.deadlineText || '')}),
-        el('p', {class: 'meta', text: '회의 전에 안건별 의견을 입력해 주시면 회의에서 참고하겠습니다. 성명을 입력해 주십시오. 입력하신 의견은 다른 위원님께도 성명과 함께 공유됩니다.'}),
+        el('p', {class: 'meta', text: '회의 중 안건별로 선택하거나 의견을 입력해 주시면 논의에 반영하겠습니다. 성명을 입력해 주십시오. 입력하신 의견은 다른 위원님께도 성명과 함께 공유됩니다. 입력은 11월 30일(월)까지 가능합니다.'}),
         form,
         el('p', {class: 'small', text: '개인정보 수집·이용 안내: 입력하신 성명과 의견은 3차 자문회의 운영과 공모지침 개선 검토에만 쓰며, 자문위원과 연구진에게 공유되고 과업 종료 후 폐기합니다.'}),
         el('p', {class: 'small', text: contactLine()})
@@ -195,7 +194,7 @@
     root.textContent = '';
     root.appendChild(el('div', {class: 'topbar'}, [
       el('div', {class: 't', text: C.title || ''}),
-      el('div', {class: 'who', id: 'who', text: S.member.name + ' 위원님'}),
+      el('div', {class: 'who', id: 'who', text: S.member.researcher ? S.member.label + ' · 시험 모드(저장되지 않음)' : S.member.name + ' 위원님'}),
       el('button', {type: 'button', id: 'btn-logout', text: '로그아웃', onclick: logout})
     ]));
     navBox = el('nav', {class: 'nav', 'aria-label': '안건 목차'});
@@ -281,7 +280,7 @@
       card.appendChild(box);
     }
     var fs = el('fieldset', {class: 'inputbox', 'data-input': a.id});
-    fs.appendChild(el('legend', {text: '사전 의견 입력'}));
+    fs.appendChild(el('legend', {text: '의견 입력'}));
     var onChange = function () { persistDraft(a.id); renderNav(); setMsg(card, '', ''); };
     if (a.mode === 'agreement') {
       [['none', '이견 없음'], ['yes', '이견 있음']].forEach(function (o) {
@@ -353,6 +352,7 @@
       clearDraft(aid);
     });
   }
+  var TEST_SAVE = '연구진 시험 계정이므로 서버에 저장하지 않았습니다(저장 동작만 확인).';
   function failText(res) {
     if (res.error === 'closed') return res.message || '입력이 마감되어 저장할 수 없습니다.';
     if (res.error === 'network') return FAIL_SAVE + ' 입력하신 내용은 이 기기에 임시 저장되어 있습니다.' + (C.contactEmail ? ' (메일: ' + C.contactEmail + ')' : '');
@@ -366,7 +366,7 @@
       S.busy = false; btn.disabled = S.closed;
       if (res.ok) {
         onSaved([aid], res.updated); renderNav();
-        setMsg(card, 'ok', '저장되었습니다(' + fmtTime(res.updated && res.updated[aid]) + ').');
+        setMsg(card, 'ok', res.test ? TEST_SAVE : '저장되었습니다(' + fmtTime(res.updated && res.updated[aid]) + ').');
       } else {
         if (res.error === 'closed') { S.closed = true; btn.disabled = true; btn.textContent = '입력이 마감되었습니다'; }
         setMsg(card, 'err', failText(res));
@@ -404,7 +404,7 @@
       S.busy = true; btn.disabled = true; setMsg(card, 'warn', '저장 중입니다.');
       api({action: 'save', name: S.name, code: S.code, items: ids.map(function (id) { return {agendaId: id, sel: S.answers[id].sel, opinion: S.answers[id].opinion || ''}; })}).then(function (res) {
         S.busy = false;
-        if (res.ok) { onSaved(ids, res.updated); renderNav(); renderView(); var c2 = mainBox.querySelector('#status-card'); setMsg(c2, 'ok', ids.length + '개 안건을 저장했습니다.'); }
+        if (res.ok) { onSaved(ids, res.updated); renderNav(); renderView(); var c2 = mainBox.querySelector('#status-card'); setMsg(c2, 'ok', res.test ? TEST_SAVE : ids.length + '개 안건을 저장했습니다.'); }
         else { btn.disabled = false; if (res.error === 'closed') S.closed = true; setMsg(card, 'err', failText(res)); }
       });
     });
@@ -436,7 +436,7 @@
   function sharedSection(a, list, total) {
     var sec = el('div', {class: 'sharedsec', 'data-shared': a.id});
     sec.appendChild(el('h3', {text: a.title}));
-    sec.appendChild(el('p', {class: 'small', text: '입력한 위원 ' + list.filter(function (e) { return String(e.label).indexOf('(연구진)') !== 0; }).length + '명 / 전체 ' + total + '명'}));
+    sec.appendChild(el('p', {class: 'small', text: '입력한 위원 ' + list.length + '명 / 전체 ' + total + '명'}));
     var agg = el('div', {class: 'agg'});
     if (a.mode === 'agreement') {
       agg.appendChild(el('span', {text: '이견 없음 ' + count(list, function (s) { return s.mode === 'none'; }) + '명'}));
@@ -457,6 +457,7 @@
     list.forEach(function (e) {
       var head = el('div', {class: 'who'}, [e.label]);
       if (e.me) head.appendChild(el('span', {class: 'me-mk', text: '(나)'}));
+      if (e.after) head.appendChild(el('span', {class: 'me-mk', text: '11.30. 12시 이후 수정'}));
       var ent = el('div', {class: 'ent' + (e.me ? ' me' : ''), 'data-entry': e.label}, [head]);
       var st = selText(a, e.sel);
       ent.appendChild(el('div', {text: st || '선택 없음'}));
@@ -471,7 +472,7 @@
   var cred = null;
   try { cred = JSON.parse(ssGet('sc3_cred') || 'null'); } catch (e) { cred = null; }
   renderLogin();
-  if (cred && cred.n && cred.c) {
+  if (cred && cred.n) {
     api({action: 'login', name: cred.n, code: cred.c}).then(function (res) {
       if (res.ok) { S.name = cred.n; S.code = cred.c; enter(res); }
       else ssDel('sc3_cred');
