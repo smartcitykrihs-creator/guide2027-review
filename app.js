@@ -124,24 +124,22 @@
   function renderLogin(errMsg, prefill) {
     root.textContent = '';
     var name = el('input', {type: 'text', id: 'f-name', autocomplete: 'off', 'aria-label': '성명', value: prefill || ''});
-    var code = el('input', {type: 'password', id: 'f-code', inputmode: 'numeric', autocomplete: 'off', maxlength: '8', 'aria-label': '확인번호'});
     var err = el('div', {id: 'login-err', class: 'msg err', role: 'alert', hidden: !errMsg, text: errMsg || ''});
     var btn = el('button', {class: 'primary', type: 'submit', id: 'btn-login', text: '확인'});
     var form = el('form', {id: 'login-form'}, [
       el('label', {class: 'fl', for: 'f-name', text: '성명'}), name,
-      el('label', {class: 'fl', for: 'f-code', text: '확인번호(4자리)'}), code,
       el('div', {class: 'actions'}, [btn]), err
     ]);
     form.addEventListener('submit', function (ev) {
       ev.preventDefault();
-      doLogin(name.value, code.value, err, btn);
+      doLogin(name.value, '', err, btn);
     });
     root.appendChild(el('div', {class: 'login'}, [
       el('div', {class: 'card'}, [
         el('h1', {text: C.title || ''}),
         el('p', {class: 'meta', text: '회의 일시: ' + (C.meeting || '')}),
         el('p', {class: 'meta', text: '입력 마감: ' + (C.deadlineText || '')}),
-        el('p', {class: 'meta', text: '회의 전에 안건별 의견을 입력해 주시면 회의에서 참고하겠습니다. 성명과 안내받은 확인번호를 입력해 주십시오.'}),
+        el('p', {class: 'meta', text: '회의 전에 안건별 의견을 입력해 주시면 회의에서 참고하겠습니다. 성명을 입력해 주십시오. 입력하신 의견은 다른 위원님께도 성명과 함께 공유됩니다.'}),
         form,
         el('p', {class: 'small', text: contactLine()})
       ])
@@ -156,7 +154,7 @@
       if (!res.ok) {
         err.textContent = res.error === 'network'
           ? '서버에 연결하지 못했습니다. 잠시 뒤 다시 시도하시거나 휴대폰으로 접속해 주십시오. 계속 접속되지 않으면 메일로 의견을 보내 주십시오.' + (C.contactEmail ? ' (' + C.contactEmail + ')' : '')
-          : (res.message || '성명 또는 확인번호가 맞지 않습니다. 다시 확인해 주십시오.');
+          : (res.message || '등록된 위원 성명이 아닙니다. 다시 확인해 주십시오.');
         err.hidden = false; return;
       }
       S.name = n; S.code = c;
