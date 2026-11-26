@@ -415,7 +415,7 @@
   /* ---------- 다른 위원 의견 ---------- */
   function renderShared() {
     var card = el('section', {class: 'card', id: 'shared-card'}, [el('h2', {text: '다른 위원 의견 보기'}),
-      el('p', {class: 'small', text: '위원 성명은 표시하지 않고 기호(위원 A~I)로만 표시합니다. 본인 의견은 「나」로 표시합니다. 저장된 의견만 보입니다.'})]);
+      el('p', {class: 'small', text: '위원별 의견을 성명과 함께 표시합니다. 본인 의견은 「(나)」로 표시합니다. 저장된 의견만 보입니다.'})]);
     mainBox.appendChild(card);
     var loading = el('p', {text: '불러오는 중입니다.'}); card.appendChild(loading);
     api({action: 'shared', name: S.name, code: S.code}).then(function (res) {
@@ -435,7 +435,7 @@
   function sharedSection(a, list, total) {
     var sec = el('div', {class: 'sharedsec', 'data-shared': a.id});
     sec.appendChild(el('h3', {text: a.title}));
-    sec.appendChild(el('p', {class: 'small', text: '입력한 위원 ' + list.length + '명 / 전체 ' + total + '명'}));
+    sec.appendChild(el('p', {class: 'small', text: '입력한 위원 ' + list.filter(function (e) { return String(e.label).indexOf('(연구진)') !== 0; }).length + '명 / 전체 ' + total + '명'}));
     var agg = el('div', {class: 'agg'});
     if (a.mode === 'agreement') {
       agg.appendChild(el('span', {text: '이견 없음 ' + count(list, function (s) { return s.mode === 'none'; }) + '명'}));
